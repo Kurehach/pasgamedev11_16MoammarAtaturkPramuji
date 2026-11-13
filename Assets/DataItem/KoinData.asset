@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemName: Gold Coin
   icon: {fileID: 7448113381798972013, guid: a735c957f6d421b40a05c32f601c9687, type: 3}
-  description: Rare Coin Description
+  description: Gold Coin Description
