@@ -4,11 +4,12 @@ using UnityEngine.UI;
 
 public class InventoryManager : MonoBehaviour
 {
-    public static InventoryManager Instance; // Singleton biar gampang dipanggil
+    public static InventoryManager Instance;
 
     [Header("Inventory UI")]
-    public GameObject inventoryPanel; // Panel keseluruhan inventory
-    public Image[] slotIcons; // Tarik UI Image dari Slot 1, Slot 2, dst ke sini
+    public GameObject inventoryPanel;
+    public Image[] slotIcons; // Tarik UI Image dari Slot 1, Slot 2, dst
+    public Text[] slotAmountTexts; // (Opsional) Tarik komponen Text angka jumlah di setiap slot ke sini kalau ada
 
     [Header("Detail Panel UI")]
     public GameObject detailPanel;
@@ -16,7 +17,21 @@ public class InventoryManager : MonoBehaviour
     public Text detailDescText;
     public Image detailIcon;
 
-    private List<ItemData> items = new List<ItemData>();
+    // Class pembungkus untuk menyimpan Item dan Jumlahnya (Stack)
+    [System.Serializable]
+    public class InventoryItem
+    {
+        public ItemData itemData;
+        public int stackSize;
+
+        public InventoryItem(ItemData item)
+        {
+            itemData = item;
+            stackSize = 1;
+        }
+    }
+
+    private List<InventoryItem> inventory = new List<InventoryItem>();
 
     void Awake()
     {
@@ -32,51 +47,90 @@ public class InventoryManager : MonoBehaviour
 
     void Update()
     {
-        // Tekan tombol TAB untuk buka/tutup Inventory
+        // Tekan tombol TAB untuk buka/tutup Inventory (sekaligus nutup detail)
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            inventoryPanel.SetActive(!inventoryPanel.activeSelf);
+            bool isInventoryOpen = !inventoryPanel.activeSelf;
+            inventoryPanel.SetActive(isInventoryOpen);
+
+            if (!isInventoryOpen && detailPanel != null)
+            {
+                detailPanel.SetActive(false);
+            }
         }
     }
 
+    // Fungsi Tambah Item dengan Logika Stacking
     public void AddItem(ItemData newItem)
     {
-        if (items.Count < slotIcons.Length)
+        // 1. Cek apakah item yang sama sudah ada di inventory
+        InventoryItem existingItem = inventory.Find(i => i.itemData == newItem);
+
+        if (existingItem != null)
         {
-            items.Add(newItem);
-            UpdateUI();
+            // Kalau sudah ada, tambahkan jumlah stack-nya!
+            existingItem.stackSize++;
+            Debug.Log("Stack bertambah untuk: " + newItem.itemName + " (Total: " + existingItem.stackSize + ")");
         }
         else
         {
-            Debug.Log("Inventory Penuh!");
+            // Kalau belum ada dan slot masih muat, buat slot baru
+            if (inventory.Count < slotIcons.Length)
+            {
+                inventory.Add(new InventoryItem(newItem));
+                Debug.Log("Item baru masuk inventory: " + newItem.itemName);
+            }
+            else
+            {
+                Debug.Log("Inventory Penuh!");
+                return;
+            }
         }
+        UpdateUI();
     }
 
     void UpdateUI()
     {
         for (int i = 0; i < slotIcons.Length; i++)
         {
-            if (i < items.Count)
+            if (i < inventory.Count)
             {
-                slotIcons[i].sprite = items[i].icon;
+                slotIcons[i].sprite = inventory[i].itemData.icon;
                 slotIcons[i].color = Color.white; // Munculkan icon
+
+                // Kalau kamu bikin Text angka jumlah stack di slot, aktifkan baris bawah ini:
+                /*
+                if (slotAmountTexts[i] != null)
+                {
+                    slotAmountTexts[i].text = inventory[i].stackSize > 1 ? inventory[i].stackSize.ToString() : "";
+                }
+                */
             }
             else
             {
                 slotIcons[i].sprite = null;
                 slotIcons[i].color = new Color(1, 1, 1, 0); // Sembunyikan icon kalau kosong
+
+                /*
+                if (slotAmountTexts[i] != null)
+                {
+                    slotAmountTexts[i].text = "";
+                }
+                */
             }
         }
     }
 
-    // Dipanggil saat slot di-klik
+    // Dipanggil saat slot di-klik via script InventorySlot
     public void ShowDetail(int slotIndex)
     {
-        if (slotIndex < items.Count)
+        if (slotIndex < inventory.Count)
         {
             detailPanel.SetActive(true);
-            ItemData clickedItem = items[slotIndex];
-            detailNameText.text = clickedItem.itemName;
+            ItemData clickedItem = inventory[slotIndex].itemData;
+            int count = inventory[slotIndex].stackSize;
+
+            detailNameText.text = clickedItem.itemName + (count > 1 ? " (x" + count + ")" : "");
             detailDescText.text = clickedItem.description;
             detailIcon.sprite = clickedItem.icon;
         }

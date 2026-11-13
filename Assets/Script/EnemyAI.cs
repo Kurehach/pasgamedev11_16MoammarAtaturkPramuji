@@ -8,21 +8,38 @@ public class EnemyAI : MonoBehaviour
     public int hp = 20;
 
     [Header("Loot Drop")]
-    public GameObject lootPrefab; // Tarik prefab item drop ke sini
+    public GameObject lootPrefab;
 
     private Transform player;
+    private SpriteRenderer spriteRenderer; // Tambahan komponen visual
 
     void Start()
     {
         GameObject p = GameObject.FindGameObjectWithTag("Player");
         if (p != null) player = p.transform;
+        
+        spriteRenderer = GetComponent<SpriteRenderer>(); // Inisialisasi
     }
 
     void Update()
     {
         if (player != null)
         {
+            // Gerak ke arah player
             transform.position = Vector2.MoveTowards(transform.position, player.position, speed * Time.deltaTime);
+
+            // Logika Flip Sprite Musuh menghadap Player
+            if (spriteRenderer != null)
+            {
+                if (player.position.x > transform.position.x)
+                {
+                    spriteRenderer.flipX = false; // Hadap kanan
+                }
+                else
+                {
+                    spriteRenderer.flipX = true; // Hadap kiri
+                }
+            }
         }
     }
 
@@ -31,7 +48,7 @@ public class EnemyAI : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             collision.gameObject.GetComponent<PlayerController>().TakeDamage(damage);
-            Destroy(gameObject); // Hancur setelah nyerang player
+            // Destroy(gameObject);
         }
     }
 
@@ -41,7 +58,7 @@ public class EnemyAI : MonoBehaviour
         if (hp <= 0)
         {
             if (lootPrefab != null) Instantiate(lootPrefab, transform.position, Quaternion.identity);
-            Destroy(gameObject); // Hancur karena dibunuh
+            Destroy(gameObject);
         }
     }
 }
